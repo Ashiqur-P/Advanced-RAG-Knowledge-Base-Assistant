@@ -1,0 +1,59 @@
+
+{
+  "test_suite": "Advanced RAG Knowledge Base Assistant",
+  "description": "Basic questions for evaluating document retrieval and grounded answers.",
+  "questions": [
+    {
+      "id": "Q001",
+      "question": "What is document ingestion?",
+      "expected_answer_contains": [
+        "extracts",
+        "processes",
+        "stores"
+      ],
+      "expected_source": "sample-knowledge-base.md"
+    },
+    {
+      "id": "Q002",
+      "question": "Why is text chunking useful?",
+      "expected_answer_contains": [
+        "smaller sections",
+        "retrieval"
+      ],
+      "expected_source": "sample-knowledge-base.md"
+    },
+    {
+      "id": "Q003",
+      "question": "What is the configured chunk size and overlap?",
+      "expected_answer_contains": [
+        "1000",
+        "200"
+      ],
+      "expected_source": "sample-knowledge-base.md"
+    },
+    {
+      "id": "Q004",
+      "question": "Which database extension supports vector storage?",
+      "expected_answer_contains": [
+        "pgvector",
+        "PostgreSQL"
+      ],
+      "expected_source": "sample-knowledge-base.md"
+    },
+    {
+      "id": "Q005",
+      "question": "What are the main stages of a RAG workflow?",
+      "expected_answer_contains": [
+        "retrieves",
+        "context",
+        "generate"
+      ],
+      "expected_source": "sample-knowledge-base.md"
+    },
+    {
+      "id": "Q006",
+      "question": "What is the capital of Japan?",
+      "expected_behavior": "fallback_when_information_is_not_available"
+    }
+  ]
+}

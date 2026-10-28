@@ -1,0 +1,290 @@
+{
+  "name": "01-document-ingestion-v4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest-document",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -112
+      ],
+      "id": "4b8baff3-7862-4da3-b3e7-c0d0ff9ee716",
+      "name": "Webhook Gateway",
+      "webhookId": "0a2f8126-652f-4c02-94dd-d20ba66b6a5c"
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "fileName",
+              "stringValue": "={{ $('Webhook Gateway').first().binary.data0.fileName }}"
+            },
+            {
+              "name": "source",
+              "stringValue": "DOCX"
+            },
+            {
+              "name": "documentType",
+              "stringValue": "docx"
+            },
+            {
+              "name": "documentHash",
+              "stringValue": "={{ $json.documentHash }}"
+            },
+            {
+              "name": "documentId",
+              "stringValue": "={{ 'doc_' + $json.documentHash }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        816,
+        -112
+      ],
+      "id": "563d92c4-fca0-4b5f-8756-f32c7f9a4c78",
+      "name": "Enrich Metadata",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "rag_document_vectors",
+        "options": {
+          "columnNames": {
+            "values": {}
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        -112
+      ],
+      "id": "f0a1afd3-9573-4672-bba7-1646021f6100",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "KDaauaE3wReZtTLv",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        864,
+        96
+      ],
+      "id": "84900522-3fb0-4adb-8b9f-9bc92c249b47",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Bn9DoiYkwhKOo1of",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "documentId",
+                "value": "={{ $('Enrich Metadata').first().json.documentId }}"
+              },
+              {
+                "name": "documentHash",
+                "value": "={{ $('Enrich Metadata').first().json.documentHash }}"
+              },
+              {
+                "name": "fileName",
+                "value": "={{ $('Enrich Metadata').first().json.fileName }}"
+              },
+              {
+                "name": "source",
+                "value": "={{ $('Enrich Metadata').first().json.source }}"
+              },
+              {
+                "name": "documentType",
+                "value": "={{ $('Enrich Metadata').first().json.documentType }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        96
+      ],
+      "id": "b8176832-fff2-4814-8ac8-12b6df5a6dbb",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        208
+      ],
+      "id": "976234df-10ab-4a9d-8408-ddb8ad062dc8",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "value": "=={{ $json.text }}",
+        "dataPropertyName": "documentHash"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -112
+      ],
+      "id": "417c798f-69eb-4030-b4e5-5eade99b2aa6",
+      "name": "Compute Document Hash",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/extract-docx",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        384,
+        -112
+      ],
+      "id": "e8d4c154-3512-45f4-a902-3fe72c728705",
+      "name": "Extract Text from DOCX API"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Gateway": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from DOCX API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Metadata": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Document Hash": {
+      "main": [
+        [
+          {
+            "node": "Enrich Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from DOCX API": {
+      "main": [
+        [
+          {
+            "node": "Compute Document Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d563b0fc-470c-4f64-8eef-1e78a16f30b0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d6e87a9f57ed9c9a691ce2bf365958528c847ac69a7562cb290b512a7e581360"
+  },
+  "nodeGroups": [],
+  "id": "gw0tnRQNKvmP9VOu",
+  "tags": []
+}
