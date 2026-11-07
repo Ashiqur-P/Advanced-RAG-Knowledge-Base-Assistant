@@ -6,8 +6,8 @@ An AI-powered knowledge base assistant built with **n8n, Google Gemini, Supabase
 
 This project demonstrates an end-to-end RAG pipeline: document ingestion, vector storage, semantic retrieval, and AI-powered question answering. It uses two n8n workflows connected to a shared Supabase pgvector table.
 
-- **Document Ingestion:** extracts DOCX text, computes a SHA-256 hash, enriches metadata, splits text into chunks, generates embeddings, and stores them in the vector database.
-- **RAG Retrieval:** validates questions, retrieves relevant chunks, builds context, and generates answers with Google Gemini.
+- **Document Ingestion:** Extracts DOCX text, computes a SHA-256 hash, enriches metadata, splits text into chunks, generates embeddings, and stores them in the vector database.
+- **RAG Retrieval:** Validates questions, retrieves relevant chunks, builds context, and generates answers with Google Gemini.
 
 A Python FastAPI service extracts text from DOCX files, including Bengali content.
 
@@ -19,67 +19,189 @@ A Python FastAPI service extracts text from DOCX files, including Bengali conten
 - Google Gemini embeddings stored in PostgreSQL with pgvector
 - Webhook-based document ingestion and question submission
 - Context-grounded answers with source information
-- Fallback response when relevant context is unavailable
+- Fallback response when the retrieved context does not contain sufficient information
+- Bengali question answering using Bengali source documents
+- English question answering using Bengali source documents
 
 ## Screenshots
 
 ![Document Ingestion Workflow](screenshots/01-ingestion-workflow.png)
+
 ![RAG Retrieval Workflow](screenshots/02-retrieval-workflow.png)
+
 ![Answer with Sources](screenshots/03-answer-with-sources.png)
 
 ## Architecture
 
-**Document Ingestion**
+### Document Ingestion
 
 ```text
 Webhook Gateway → DOCX Extraction API → Compute Document Hash → Enrich Metadata
 → Text Splitting → Gemini Embeddings → Supabase PGVector Store
 ```
 
-**RAG Retrieval**
+### RAG Retrieval
 
 ```text
 Question Webhook → Validate Input → Retrieve Relevant Chunks → Build Context
 → Check Context Availability → Generate Answer → Format Response → Respond to Webhook
 ```
 
-If the available context is insufficient, the retrieval workflow returns a fallback response instead of presenting unsupported information as fact. See [docs/architecture.md](docs/architecture.md) for details.
+If the available context is insufficient, the retrieval workflow returns a fallback response instead of presenting unsupported information as fact.
 
-**Stack:** n8n · Google Gemini · Supabase + pgvector · Python + FastAPI (python-docx) · Docker Desktop · Postman
+See [docs/architecture.md](docs/architecture.md) for architecture details.
+
+## Technology Stack
+
+- **Workflow Automation:** n8n
+- **AI Models:** Google Gemini
+- **Chat Model:** `gemini-3-flash-preview`
+- **Embedding Model:** `gemini-embedding-001`
+- **Vector Database:** Supabase PostgreSQL with pgvector
+- **Backend API:** Python and FastAPI
+- **DOCX Processing:** python-docx
+- **Containerization:** Docker Desktop
+- **API Testing:** Postman
+
+The `gemini-3-flash-preview` Chat Model is also used in the Telegram Bot and AI Lead Qualification portfolio projects.
 
 ## Chunking and Vector Storage
 
-- **Text splitter:** Recursive Character Text Splitter
-- **Chunk size / overlap:** 1,000 / 200 characters
-- **Embedding model:** `gemini-embedding-001` (3,072 dimensions)
-- **Vector table:** `public.rag_document_vectors`
+| Component | Configuration |
+|---|---|
+| Text Splitter | Recursive Character Text Splitter |
+| Chunk Size | 1,000 characters |
+| Chunk Overlap | 200 characters |
+| Embedding Model | `gemini-embedding-001` |
+| Embedding Dimensions | 3,072 |
+| Vector Table | `public.rag_document_vectors` |
+| Stored Chunks in Evaluation Dataset | 195 |
 
-The sample Bengali educational document produced approximately 30 chunks. The embedding dimensions must match the database vector column, and indexing options should be evaluated before scaling to larger datasets.
+The sample Bengali educational DOCX document was processed and stored in Supabase pgvector.
+
+The embedding dimensions must match the database vector column.
+
+**Indexing limitation:** Standard pgvector `vector` indexing with HNSW and IVFFlat supports up to 2,000 dimensions. The current 3,072-dimensional embeddings therefore require an alternative indexing strategy or exact search. This should be considered before scaling to larger knowledge bases.
+
+## Evaluation Results
+
+**Evaluation Date:** 2026-11-07
+
+The RAG workflow was manually evaluated using 13 questions.
+
+| Evaluation Metric | Result |
+|---|---:|
+| Total Questions | 13 |
+| Answerable Questions Passed | 10/10 |
+| Unanswerable Questions Correctly Abstained | 3/3 |
+| Total Questions Correctly Answered or Abstained | 13/13 |
+| Observed Hallucinated Answers | 0 |
+
+### Tested Capabilities
+
+- Direct factual question answering
+- Combined and paraphrased questions
+- Bengali question answering
+- English question answering using Bengali document content
+- Population statistics retrieval
+- Abstention when requested information was not available in the document
+
+### Evaluation Observations
+
+All three unanswerable questions were correctly handled without generating unsupported factual answers.
+
+However, some abstention responses included citations to irrelevant retrieved chunks. Therefore, correct abstention does not necessarily mean that every displayed source citation was relevant.
+
+These results apply only to the 13 manually tested questions. They do not establish 100% overall RAG accuracy or production reliability.
+
+See [test-results/day5-rag-eval.md](test-results/day5-rag-eval.md) for the detailed evaluation report.
+
+## Known Limitations
+
+- Retrieval sometimes returns less relevant chunks alongside relevant chunks.
+- Some unanswerable responses include citations to irrelevant retrieved chunks.
+- Citation-number-to-source-chunk mapping has not been independently verified.
+- The exact Bengali fallback response has not been separately verified.
+- Standard HNSW and IVFFlat indexing is limited to 2,000 dimensions for the standard pgvector `vector` type. The current 3,072-dimensional embeddings require an alternative indexing strategy or exact search.
+- A fresh standalone SHA256 execution was not performed during the Day 5 evaluation; the existing ingestion hash and node configuration were verified.
+- Evaluation coverage is limited to 13 manually tested questions.
+
+## Provider Availability
+
+The originally configured retrieval Chat Model was `gemini-3.8-flash`.
+
+During evaluation, requests returned:
+
+`503 Service Unavailable — model is currently experiencing high demand.`
+
+The Chat Model was changed to:
+
+`gemini-3-flash-preview`
+
+The new model successfully generated the subsequent tested answers.
+
+This was recorded as a provider/model availability issue, not as a verified workflow logic failure.
 
 ## Local Setup
 
-**Prerequisites:** Docker Desktop and n8n, Python 3.10+, a Google Gemini API key, a Supabase project with pgvector, and Postman or another HTTP client.
+### Prerequisites
+
+- Docker Desktop
+- n8n
+- Python 3.10+
+- Google Gemini API key
+- Supabase project with pgvector
+- Postman or another HTTP client
 
 ### 1. Start n8n
 
-If your existing Docker container is named `n8n`, run `docker start n8n` and open [http://localhost:5678](http://localhost:5678). For a new installation, follow the [official n8n Docker guide](https://docs.n8n.io/hosting/installation/docker/).
+If your existing Docker container is named `n8n`, run:
 
-### 2. Start the DOCX extraction API
+```bash
+docker start n8n
+```
+
+Open [http://localhost:5678](http://localhost:5678).
+
+For a new installation, follow the [official n8n Docker guide](https://docs.n8n.io/hosting/installation/docker/).
+
+### 2. Start the DOCX Extraction API
+
+Install the required dependencies:
 
 ```bash
 python -m pip install fastapi uvicorn python-docx python-multipart
+```
+
+Start the API from the project directory:
+
+```bash
 python -m uvicorn docx_extraction_api:app --host 0.0.0.0 --port 8000
 ```
 
-Check [http://localhost:8000/health](http://localhost:8000/health). The ingestion workflow calls `http://host.docker.internal:8000/extract-docx`, which lets Docker Desktop reach the API on your machine. This is a local development address, not a production endpoint.
+Check the health endpoint:
 
-### 3. Configure credentials
+[http://localhost:8000/health](http://localhost:8000/health)
 
-Add Google Gemini and Supabase PostgreSQL credentials in n8n. `.env.example` is only a reference; its placeholders do not configure n8n automatically.
+The ingestion workflow calls:
 
-### 4. Prepare the vector table
+```text
+http://host.docker.internal:8000/extract-docx
+```
 
-Illustrative schema for a **new** table. Inspect your existing Supabase schema first, as this does not alter an existing table:
+This address allows Docker Desktop to reach the API running on the host machine. It is a local development address, not a production endpoint.
+
+### 3. Configure Credentials
+
+Configure Google Gemini and Supabase PostgreSQL credentials in n8n.
+
+`.env.example` is only a reference; its placeholders do not configure n8n credentials automatically.
+
+Never publish actual API keys, passwords, or access tokens.
+
+### 4. Prepare the Vector Table
+
+The following is an illustrative schema for a **new table**. Inspect your existing Supabase schema first. This SQL does not alter an existing table.
 
 ```sql
 create extension if not exists vector;
@@ -92,48 +214,88 @@ create table if not exists public.rag_document_vectors (
 );
 ```
 
-The standard `vector` type's HNSW and IVFFlat indexes support up to 2,000 dimensions, so no conventional index is available at 3,072. Exact search is fine for small knowledge bases.
+For the current 3,072-dimensional embeddings, conventional HNSW and IVFFlat indexing on the standard `vector` type is not supported. Exact search can be used for small knowledge bases.
 
-### 5. Import the workflows
+### 5. Import the Workflows
 
-Import `workflow/01-document-ingestion-v4.json` and `workflow/02-document-retrieval-v1.json`. Then assign credentials, verify the webhook paths, confirm the DOCX API URL, and check the vector table settings. Imported workflows may need instance-specific adjustments.
+The sanitized workflow exports intended for repository publication are located in the `workflows/` directory:
+
+- `workflows/01-document-ingestion-v4-SANITIZED.json`
+- `workflows/02-document-retrieval-v1-SANITIZED.json`
+
+Original unsanitized exports should be retained locally as backups and excluded from the public repository.
+
+Import the sanitized JSON files into n8n.
+
+After importing:
+
+1. Assign your own Google Gemini credentials.
+2. Assign your own Supabase PostgreSQL credentials.
+3. Verify the webhook paths.
+4. Confirm the DOCX API URL.
+5. Verify the vector table and embedding configuration.
+
+Imported workflows may require instance-specific adjustments before execution.
 
 ## Usage
 
-Replace the example webhook paths with the actual paths shown in n8n. Use the test webhook URL when running in n8n test mode.
+Replace the example webhook paths with the actual paths configured in n8n. Use the test webhook URL when running in n8n test mode.
 
-**Ingest a DOCX document** (the form field name must match your webhook configuration):
+### Ingest a DOCX Document
+
+The form field name must match the webhook configuration.
 
 ```bash
-curl -X POST "http://localhost:5678/webhook/<ingestion-path>" \
+curl -X POST "http://localhost:5678/webhook-test/ingest-document" \
   -F "file=@sample.docx"
 ```
 
-**Ask a question** (adjust the fields if your workflow expects a different structure):
+### Ask a Question
+
+The retrieval workflow uses the `ask-question` webhook path.
 
 ```bash
-curl -X POST "http://localhost:5678/webhook/<retrieval-path>" \
+curl -X POST "http://localhost:5678/webhook-test/ask-question" \
   -H "Content-Type: application/json" \
   -d "{\"question\":\"What does the document say about population?\"}"
 ```
 
+For production webhook execution, use the production webhook URL shown by n8n instead of the test URL.
+
 ## Testing
 
-- `test_docx_text.py`: checks DOCX text extraction
-- `test-data/rag-test-questions.json`: example questions and expected retrieval behavior (test data, not an automated test runner)
-- `screenshots/`: workflow and response evidence
+The project includes:
 
-Record test results only after verifying the behavior.
+- `test_docx_text.py`: Checks DOCX text extraction.
+- `test-data/rag-test-questions.json`: Example questions and expected retrieval behavior. This is test data, not an automated test runner.
+- `test-results/day5-rag-eval.md`: Manual RAG evaluation report.
+- `screenshots/`: Workflow and response evidence.
+
+The Day 5 evaluation covered 13 manually tested questions. See the evaluation report for individual results and limitations.
 
 ## Security
 
-- Never commit API keys, passwords, or access tokens; keep local secrets excluded through `.gitignore`.
-- Review exported n8n workflow JSON files for instance-specific metadata before publishing.
+- Never commit API keys, passwords, or access tokens.
+- Keep local secrets excluded through `.gitignore`.
+- Do not publish original unsanitized workflow exports.
+- Review sanitized n8n workflow JSON files before publishing.
+- Check for API keys, database URLs, email addresses, instance identifiers, and other personal or environment-specific information.
 - Secure public-facing webhooks and APIs before production deployment.
 
 ## Future Improvements
 
-Support for additional document formats, document update and deletion workflows, automated integration tests, retrieval quality evaluation, improved logging and error handling, and performance optimization for larger datasets. These are potential improvements, not implemented features.
+Potential future improvements include:
+
+- Support for additional document formats.
+- Document update and deletion workflows.
+- Automated integration tests.
+- Improved retrieval relevance and citation mapping.
+- More robust fallback response handling.
+- Improved logging and error handling.
+- Alternative indexing strategies for larger vector collections.
+- Performance optimization for larger knowledge bases.
+
+These are potential improvements, not implemented features.
 
 ## License
 

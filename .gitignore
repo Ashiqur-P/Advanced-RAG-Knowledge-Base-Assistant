@@ -26,3 +26,7 @@ Thumbs.db
 # Editor settings
 .vscode/
 .idea/
+
+# Original n8n workflow exports - keep as local backups only
+workflow/01-document-ingestion-v4.json
+workflow/02-document-retrieval-v1.json
