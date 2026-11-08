@@ -1,9 +1,13 @@
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import os
+import secrets
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from docx import Document
 from io import BytesIO
 
 app = FastAPI(title="Bengali DOCX Text Extraction API")
+
+API_KEY = os.getenv("DOCX_API_KEY")
 
 
 @app.get("/health")
@@ -15,7 +19,22 @@ def health_check():
 
 
 @app.post("/extract-docx")
-async def extract_docx(file: UploadFile = File(...)):
+async def extract_docx(
+    file: UploadFile = File(...),
+    x_api_key: str = Header(default=None, alias="X-API-Key")
+):
+    if not API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="API authentication is not configured."
+        )
+
+    if not x_api_key or not secrets.compare_digest(x_api_key, API_KEY):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key."
+        )
+
     filename = file.filename or ""
 
     if not filename.lower().endswith(".docx"):
