@@ -22,6 +22,9 @@ A Python FastAPI service extracts text from DOCX files, including Bengali conten
 - Fallback response when the retrieved context does not contain sufficient information
 - Bengali question answering using Bengali source documents
 - English question answering using Bengali source documents
+- DOCX ingestion validation: `.docx` files only, with a 5 MB maximum file size
+- FastAPI DOCX extraction protected by `X-API-Key` authentication
+- Structured ingestion success and error responses with HTTP status codes
 
 ## Screenshots
 
@@ -173,11 +176,23 @@ Install the required dependencies:
 python -m pip install fastapi uvicorn python-docx python-multipart
 ```
 
-Start the API from the project directory:
+The API requires the `DOCX_API_KEY` environment variable. In Windows
+Command Prompt, set it before starting the API. Use a strong, private value;
+do not copy the placeholder literally:
 
-```bash
+```cmd
+set DOCX_API_KEY=your-strong-secret-key
 python -m uvicorn docx_extraction_api:app --host 0.0.0.0 --port 8000
 ```
+
+In n8n, configure the matching value in the Header Auth credential used by
+the **HTTP Request node** that calls this API. The credential sends the
+`X-API-Key` header to FastAPI. This is separate from authentication on the
+incoming n8n Webhook; the FastAPI credential does not, by itself, protect
+that Webhook.
+
+If the API process is restarted, set `DOCX_API_KEY` again in the same
+Command Prompt before starting Uvicorn.
 
 Check the health endpoint:
 
@@ -272,6 +287,29 @@ The project includes:
 - `screenshots/`: Workflow and response evidence.
 
 The Day 5 evaluation covered 13 manually tested questions. See the evaluation report for individual results and limitations.
+
+## Ingestion Validation and Authentication
+
+The following behaviors were tested in the Day 6 ingestion workflow:
+
+| Test | HTTP Status | Component / source |
+|---|---:|---|
+| Upload a non-DOCX file (`.txt`) | 415 | n8n file validation |
+| Upload a 6 MB DOCX file (limit: 5 MB) | 413 | n8n file validation |
+| Upload an empty DOCX with no extractable text | 422 | FastAPI extraction error, returned through n8n |
+| Send an invalid API key to the DOCX Extraction API | 401 | FastAPI `X-API-Key` authentication |
+
+The HTTP 401 result came from **FastAPI**, after the n8n HTTP Request node
+sent an invalid `X-API-Key`. It was not a test of authentication on the
+incoming n8n Webhook.
+
+The n8n Header Auth credential used by the HTTP Request node and the
+incoming Webhook's own authentication settings are different configuration
+points. Incoming Webhook authentication was not independently tested for
+this report; therefore, no HTTP 403 result is claimed here.
+
+A valid DOCX ingestion request was also tested and returned HTTP 200 with a
+structured success response containing `status`, `documentId`, and `chunks`.
 
 ## Security
 
