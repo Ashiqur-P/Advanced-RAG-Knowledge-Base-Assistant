@@ -74,20 +74,19 @@ The baseline correctly avoided unsupported answers, but the abstention wording w
 | Q14 | বাংলাদেশের বর্তমান সাক্ষরতার হার কত? | Exact fallback | PASS | PASS |
 | Q15 | বাংলাদেশের সর্বশেষ জাতীয় নির্বাচনে কোন দল কত আসন পেয়েছে? | Exact fallback | PASS | PASS |
 
-### After-test Summary (Partial)
+### After-test Summary (Final)
 
-- Completed after-tests: 11/15
-- Completed tests passed: 11/11
-- Answerable questions passed: 6/6
-- Unanswerable questions returned exact fallback: 5/5
-- Pending: 4 questions (Q7–Q10)
+- Completed after-tests: 15/15
+- Completed tests passed: 15/15
+- Answerable questions passed: 10/10
+- Unanswerable questions returned the exact fallback: 5/5
+- Observed hallucinations: 0
 
-Q7 encountered a Gemini HTTP 429 daily quota error, surfaced as an HTTP 502 workflow response. Q8–Q10 have not yet been attempted and are pending; they are not classified as failures.
-
+Q7 initially encountered a Gemini HTTP 429 daily quota error, surfaced as an HTTP 502 workflow response. After the quota reset, the retry succeeded. Q7–Q10 subsequently completed and all four passed.
 
 ## 4. After-test Quality Audit
 
-| ID | Answer Correctness | Citation Count vs Sources | Irrelevant Retrieved Sources | Status |
+| ID | Answer Correctness | Citation Count vs Sources | Retrieval Relevance | Status |
 |---|---|---|---|---|
 | Q1 | Correct: 1.22% | 1 citation / 3 sources — mismatch | Some retrieved chunks were unrelated | PASS |
 | Q2 | Correct: all three growth rates | 3 citations / 3 sources — count matches; mapping not verified | Some retrieved chunks were unrelated | PASS |
@@ -95,10 +94,10 @@ Q7 encountered a Gemini HTTP 429 daily quota error, surfaced as an HTTP 502 work
 | Q4 | Correct: আর্দ্রতা | 1 citation / 3 sources — mismatch | Some retrieved chunks were broad or partially relevant | PASS |
 | Q5 | Correct: all expected benefits | 3 citations / 3 sources — count matches; mapping not verified | 2 of 3 chunks were irrelevant or partly irrelevant | PASS |
 | Q6 | Correct: expected agricultural land and environmental impacts | 2 citations / 3 sources — mismatch | Third retrieved chunk was less relevant | PASS |
-| Q7 | Not tested after prompt improvement | Not evaluated | Not evaluated | PENDING — HTTP 429 quota error |
-| Q8 | Not tested after prompt improvement | Not evaluated | Not evaluated | PENDING |
-| Q9 | Not tested after prompt improvement | Not evaluated | Not evaluated | PENDING |
-| Q10 | Not tested after prompt improvement | Not evaluated | Not evaluated | PENDING |
+| Q7 | Correct: ঘনীভবন (condensation) | 2 citation markers / 3 sources — mismatch | Chunks 1 and 3 relevant; chunk 2 partially relevant | PASS |
+| Q8 | Correct: fair price and correct weight | 3 citation markers / 3 sources — count matches; mapping not verified | Chunk 2 directly relevant; chunks 1 and 3 less relevant | PASS |
+| Q9 | Correct: evaporation, condensation/cloud formation, precipitation and recirculation; additional ice/snowfall explanation | 3 citation markers / 3 sources — mismatch | Chunks 1 and 3 relevant; chunk 2 less relevant | PASS |
+| Q10 | Correct: smartphones, computers/laptops, pen drives, memory cards and hard disks | 1 citation / 3 sources — mismatch | Chunk 1 relevant; chunk 2 partially relevant; chunk 3 irrelevant | PASS |
 | Q11 | Exact fallback returned | No citation; 3 retrieved sources | Retrieved chunks did not directly answer the question | PASS |
 | Q12 | Exact fallback returned | No citation; 3 retrieved sources | Retrieved chunks did not directly answer the question | PASS |
 | Q13 | Exact fallback returned | No citation; 3 retrieved sources | Near-topic chunks existed, but did not contain the requested 2025 figure | PASS |

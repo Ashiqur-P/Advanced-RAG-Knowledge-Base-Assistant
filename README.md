@@ -391,32 +391,31 @@ No reliable hard similarity threshold was identified. Therefore, no arbitrary th
 
 This improves answer abstention behavior; it does not resolve irrelevant retrieval results.
 
-### Partial After-test Results
+### Final After-test Results
 
 | Metric | Result |
 |---|---:|
-| Completed after-tests | 11/15 |
-| Passed completed tests | 11/11 |
-| Answerable questions passed | 6/6 |
+| Completed after-tests | 15/15 |
+| Passed completed tests | 15/15 |
+| Answerable questions passed | 10/10 |
 | Unanswerable questions returning exact fallback | 5/5 |
-| Pending questions | 4 (Q7–Q10) |
+| Observed hallucinations | 0 |
+| Pending questions | 0 |
 
-Q7 encountered a Gemini HTTP 429 daily quota error, surfaced as an HTTP 502 workflow response. Q8–Q10 have not yet been tested.
+Q7 initially encountered a Gemini HTTP 429 daily quota error, surfaced as an HTTP 502 workflow response. After the quota reset, its retry succeeded. Q7–Q10 were subsequently tested, and all four passed.
 
-These are partial results, not a completed 15-question evaluation.
+All 15 questions passed the answer-correctness or abstention checks. This does not mean retrieval relevance or citation mapping was perfect.
 
 ### Remaining Limitations
 
-- Some irrelevant chunks are still retrieved.
+- Some irrelevant or partially relevant chunks are still retrieved for answerable questions.
 - Citation-number-to-source-chunk mapping has not been independently verified.
+- Citation count matching the number of returned sources does not prove correct source attribution.
 - A correct fallback response does not prove retrieval relevance.
-- Four after-tests remain pending.
 - The evaluation is a small manual test set and does not establish production-level reliability.
 
 See [test-results/day9-rag-eval.md](test-results/day9-rag-eval.md) for the detailed Day 9 evaluation, question set, threshold analysis, and test status.
 
-
-
 ### Gemini Free Tier Quota Limitation
 
-During the Day 9 after-test evaluation, the Gemini 3 Flash API reached its daily free-tier generation request limit (20 requests per day). A subsequent request returned HTTP 429, which surfaced as HTTP 502 in the n8n workflow. Testing was paused to avoid repeated quota failures. No paid billing was enabled.
+During the Day 9 after-test evaluation, the Gemini 3 Flash API reached its daily free-tier generation request limit (20 requests per day). A subsequent request returned HTTP 429, which surfaced as HTTP 502 in the n8n workflow. Testing was paused to avoid repeated quota failures. After the daily quota reset, testing resumed. Q7 was retried successfully, and Q8–Q10 were also completed successfully. No paid billing was enabled.
