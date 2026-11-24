@@ -26,6 +26,10 @@ A Python FastAPI service extracts text from DOCX files, including Bengali conten
 - FastAPI DOCX extraction protected by `X-API-Key` authentication
 - Structured ingestion success and error responses with HTTP status codes
 
+## Demo Video
+
+[Watch the Advanced RAG Knowledge Base Assistant Demo on YouTube](https://youtu.be/YEINLdzVdKk)
+
 ## Screenshots
 
 ![Document Ingestion Workflow](screenshots/01-ingestion-workflow.png)
